@@ -1,0 +1,22 @@
+# --- Python Specific ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Virtual Environments ---
+# If you use a local 'venv' or '.env' folder, ignore it!
+.venv/
+venv/
+env/
+.env
+
+# --- VS Code / IDE ---
+.vscode/
+.idea/
+
+# --- Neural Engineering / Research Artifacts ---
+# Ignore binary data, large result files, or caches
+*.mat
+*.npy
+*.h5
+*.log
