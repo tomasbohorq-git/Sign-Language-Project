@@ -1,0 +1,22 @@
+
+# EMMAeye Installation Requirements
+# Python 3.9.x recommended
+# 2. Run: pip install -r install.txt
+
+opencv-python==4.8.1.78
+mediapipe==0.10.14
+cvzone==1.6.1
+numpy==1.24.4
+paho-mqtt==1.6.1
+
+# If MediaPipe crashes due to protobuf conflict:
+# protobuf==3.20.3
+
+#TROUBLESHOOTING
+# If MediaPipe causes the program to crash silently, it is often due to a conflict of versions.
+# with the 'protobuf' library. If this happens, uncomment the line below:
+# protobuf==3.20.3
+# Required model files (must be placed in project root):
+# - pose_landmarker_lite.task
+# - deploy.prototxt
+# - res10_300x300_ssd_iter_140000.caffemodel
