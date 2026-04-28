@@ -3,10 +3,7 @@ from typing import List, Dict, Optional, Tuple
 from collections import deque
 
 from person import Person, HandData, FaceData, PoseData
-from gesture_logic import (
-    shift_to_origin, rotate_hand_around_reference, expand_hand_area,
-    check_all_points_position, compare_to_gesture_matrix
-)
+from gesture_classifier import GestureClassifier
 
 def _dist(a: Tuple[float, float], b: Tuple[float, float]) -> float:
     return float(math.hypot(a[0]-b[0], a[1]-b[1]))
@@ -41,20 +38,9 @@ class GestureStabilizer:
         self.stable = new_stable
         return changed, new_stable
 
-def compute_gesture_id(lm_list_xyz, gesture_matrix, max_hamming=1):
-    shifted = shift_to_origin(lm_list_xyz)
-    rotated = rotate_hand_around_reference(shifted)
-    palm_poly = expand_hand_area(rotated)
-    palm_np = __import__("numpy").array(palm_poly, dtype=__import__("numpy").int32)
-    features = check_all_points_position(rotated, palm_np)
-    gid = compare_to_gesture_matrix(features, gesture_matrix, max_hamming=max_hamming)
-    return gid
-
 class Associator:
-    def __init__(self, gesture_matrix, max_hamming=1, coupling_factor=0.35):
-        self.gesture_matrix = gesture_matrix
-        self.max_hamming = max_hamming
-        self.coupling_factor = coupling_factor
+    def __init__(self, gesture_classifier: GestureClassifier):
+        self.gesture_classifier = gesture_classifier
 
         # Stabilizers keyed by (person_id, side)
         self.stabilizers: Dict[Tuple[int, str], GestureStabilizer] = {}
@@ -105,7 +91,7 @@ class Associator:
             hand_wrist = (lm[0][0], lm[0][1])
 
             # gesture raw
-            raw_gid = compute_gesture_id(lm, self.gesture_matrix, max_hamming=self.max_hamming)
+            raw_gid = self.gesture_classifier.classify(lm)
 
             best = None  # (dist, person, side)
             for p in people:
