@@ -13,12 +13,10 @@ from associator import Associator
 from face_detector_dnn import FaceDetectorDNN
 from logger_jsonl import JsonlLogger
 
-
-
 # CONFIG
 
 
-MODEL_PATH = "pose_landmarker_lite.task"
+MODEL_PATH = "FabianAndFerProject/pose_landmarker_lite.task"
 
 NUM_POSES = 3              # Start stable with 2; increase later if CPU allows
 MAX_HANDS = 8              # Up to 8 hands in the scene (multiple people)
@@ -27,7 +25,7 @@ FLIP_TYPE = True          # False = error with the hand labeling, left=right and
 CAP_W, CAP_H = 1280, 720   # Camera capture resolution (best effort)
 COUPLING_FACTOR = 0.35     # Hand->Pose coupling threshold (relative to shoulder distance)
 
-LOG_PATH = "emmaeye_log.jsonl"
+LOG_PATH = "FabianAndFerProject/emmaeye_log.jsonl"
 
 
 # Gesture reference matrix (G1–G16)
@@ -99,6 +97,31 @@ def build_pose_data(lm_list, w, h, coupling_factor):
     )
 
 
+def gesture_id_to_name(gid):
+    if gid == -1:
+        return "Unknown"
+    if gid == 2:
+        return "G2 (Peace)"
+    if gid == 3:
+        return "G3 (Fist)"
+    if gid == 4:
+        return "G4 (Open Hand)"
+    if gid == 5:
+        return "G5 (Thumbs Up)"
+    # if gid == 6:
+    # if gid == 7:
+    # if gid == 8:
+    # if gid == 9:
+    if gid == 10:
+        return "G7 (Thumbs Down)"
+    # if gid == 11:
+    # if gid == 12:
+    # if gid == 13:
+    # if gid == 14:
+    # if gid == 15:
+    # if gid == 16:
+    
+    return f"G{gid} (TODO)"
 
 # INITIALIZATION
 
@@ -223,8 +246,8 @@ while True:
                 
                 # Safely get gesture from the object
                 gesture = getattr(hd, 'stable_gesture', 'Unknown')
-                
-                cv2.putText(frame, f"{side} G{gesture}", (x, y - 10),
+
+                cv2.putText(frame, f"{side} {gesture_id_to_name(gesture)}", (x, y - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
 
     #  Log for later analysis

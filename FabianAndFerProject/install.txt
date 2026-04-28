@@ -6,7 +6,7 @@
 opencv-python==4.8.1.78
 mediapipe==0.10.14
 cvzone==1.6.1
-numpy==1.24.4
+numpy==1.26.4
 paho-mqtt==1.6.1
 
 # If MediaPipe crashes due to protobuf conflict:
