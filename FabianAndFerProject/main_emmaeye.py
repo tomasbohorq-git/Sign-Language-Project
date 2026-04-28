@@ -13,6 +13,8 @@ from associator import Associator
 from face_detector_dnn import FaceDetectorDNN
 from logger_jsonl import JsonlLogger
 
+from gesture_classifier import HammingGestureClassifier
+
 # CONFIG
 
 
@@ -166,7 +168,7 @@ face_detector = FaceDetectorDNN(conf_threshold=0.5)
 tracker = PersonTracker(max_people=20, max_missed=100, match_thresh_px=200.0)
 
 # Associator: hands + face -> person, with gesture stabilization
-associator = Associator(GESTURE_MATRIX, max_hamming=1, coupling_factor=COUPLING_FACTOR)
+associator = Associator(gesture_classifier=HammingGestureClassifier(GESTURE_MATRIX, max_hamming=1))
 
 #  Logger (JSONL)
 logger = JsonlLogger(LOG_PATH)
