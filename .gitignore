@@ -20,3 +20,6 @@ env/
 *.npy
 *.h5
 *.log
+*.jsonl
+##Ignore this
+*settings.json
