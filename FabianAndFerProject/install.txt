@@ -8,6 +8,7 @@ mediapipe==0.10.14
 cvzone==1.6.1
 numpy==1.26.4
 paho-mqtt==1.6.1
+PyOpenAL==0.7.11a1
 
 # If MediaPipe crashes due to protobuf conflict:
 # protobuf==3.20.3

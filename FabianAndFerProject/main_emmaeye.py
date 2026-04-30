@@ -12,11 +12,9 @@ from tracker import PersonTracker
 from associator import Associator
 from face_detector_dnn import FaceDetectorDNN
 from logger_jsonl import JsonlLogger
-
 from gesture_classifier import HammingGestureClassifier
-
+from audio_manager import GestureAudioManager
 # CONFIG
-
 
 MODEL_PATH = "FabianAndFerProject/pose_landmarker_lite.task"
 
@@ -99,7 +97,7 @@ def build_pose_data(lm_list, w, h, coupling_factor):
     )
 
 
-def gesture_id_to_name(gid):
+def print_gesture(gid):
     if gid == -1:
         return "Unknown"
     if gid == 2:
@@ -124,6 +122,17 @@ def gesture_id_to_name(gid):
     # if gid == 16:
     
     return f"G{gid} (TODO)"
+
+def gid_to_sign_name(gid):
+    sign_names = {
+        2: "Victory",
+        4: "Stop",
+        10: "Dislike",
+        5: "Okay"
+        # TODO: Impliment Point
+    }
+    sign_name = sign_names.get(gid)
+    return sign_name if sign_name else "UNKNOWN"
 
 # INITIALIZATION
 
@@ -172,6 +181,9 @@ associator = Associator(gesture_classifier=HammingGestureClassifier(GESTURE_MATR
 
 #  Logger (JSONL)
 logger = JsonlLogger(LOG_PATH)
+
+# Audio manager
+audio_manager = GestureAudioManager()
 
 print("EMMAeye (persistent IDs) running. Press ESC to exit.")
 t0 = time.time()
@@ -249,8 +261,11 @@ while True:
                 # Safely get gesture from the object
                 gesture = getattr(hd, 'stable_gesture', 'Unknown')
 
-                cv2.putText(frame, f"{side} {gesture_id_to_name(gesture)}", (x, y - 10),
+                cv2.putText(frame, f"{side} {print_gesture(gesture)}", (x, y - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
+                
+                if hd.changed:
+                    audio_manager.trigger_gesture(p.id, (cx, cy, 0), gid_to_sign_name(gesture))
 
     #  Log for later analysis
     try:

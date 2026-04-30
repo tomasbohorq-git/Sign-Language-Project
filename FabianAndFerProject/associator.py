@@ -136,7 +136,8 @@ class Associator:
                 raw_gesture=raw_gid,
                 stable_gesture=stable_gid,
                 assigned_side=side,
-                dist_to_wrist=d
+                dist_to_wrist=d,
+                changed=changed
             )
 
             if changed:

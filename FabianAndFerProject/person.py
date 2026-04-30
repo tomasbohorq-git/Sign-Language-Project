@@ -22,6 +22,7 @@ class HandData:
     stable_gesture: int
     assigned_side: str  # "BODY_LEFT" or "BODY_RIGHT"
     dist_to_wrist: float
+    changed: bool
 
 @dataclass
 class FaceData:
@@ -36,6 +37,7 @@ class Person:
         self.pose: Optional[PoseData] = None
         self.face: Optional[FaceData] = None
         self.hands: Dict[str, Optional[HandData]] = {"BODY_LEFT": None, "BODY_RIGHT": None}
+        self.pose_change = False
 
         self.t_ms: int = 0
         self.missed_frames: int = 0
