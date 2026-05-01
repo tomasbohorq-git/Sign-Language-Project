@@ -11,7 +11,7 @@ from face_detector_dnn import FaceDetectorDNN
 # ==========================================
 # 0. FILE CHECK
 # ==========================================
-midas_path = "model-small.onnx"
+midas_path = "FabianAndFerProject/model-small.onnx"
 if not os.path.exists(midas_path):
     print(f"ERROR: Could not find file '{midas_path}'.")
     print("Make sure it is in the same folder as this script.")
