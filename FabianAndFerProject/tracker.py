@@ -6,7 +6,7 @@ def _dist(a: Tuple[float, float], b: Tuple[float, float]) -> float:
     return float(math.hypot(a[0]-b[0], a[1]-b[1]))
 
 class PersonTracker:
-    def __init__(self, max_people: int = 10, max_missed: int = 15, match_thresh_px: float = 160.0):
+    def __init__(self, max_people: int = 10, max_missed: int = 60, match_thresh_px: float = 160.0):
         """
         match_thresh_px: base distance threshold. We will scale it by shoulder distance when possible.
         max_missed: frames before removing a person if not seen
