@@ -18,6 +18,9 @@ class GestureAudioManager:
         self.monitor_thread = threading.Thread(target=self._process_queues, daemon=True)
         self.monitor_thread.start()
 
+        self.warning_source = None
+        self.is_warning_active = False
+
         # Pre-load audio buffers into memory
         self.audio_buffers = {}
         self._load_all_audio()
@@ -29,7 +32,35 @@ class GestureAudioManager:
               name = os.path.splitext(file)[0]
               # Store the buffer itself, not the path
               self.audio_buffers[name] = oalOpen(f"FabianAndFerProject/audio/{file}").buffer
-              
+
+      # Initialize the dedicated warning source if the file exists
+      if "beep_warning" in self.audio_buffers:
+        # We open an empty source and assign the buffer
+        self.warning_source = oalOpen("FabianAndFerProject/audio/beep_warning.wav")
+        self.warning_source.set_looping(True) # type: ignore
+      else:
+        print("Warning: beep_warning.wav not found in audio folder.")
+    
+    def toggle_warning(self, state=None):
+      """
+      Toggles the warning beep on/off. 
+      If state is provided (True/False), it sets it explicitly.
+      """
+      if self.warning_source is None:
+        return
+
+      # If no explicit state is provided, flip the current state
+      if state is None:
+        self.is_warning_active = not self.is_warning_active
+      else:
+        self.is_warning_active = state
+
+      if self.is_warning_active:
+        if self.warning_source.get_state() != AL_PLAYING:
+          self.warning_source.play()
+      else:
+        self.warning_source.stop()
+
     def trigger_gesture(self, person_id, position, sign_name):
         """Adds a gesture to the queue for a specific person."""
         if sign_name == "UNKNOWN":
@@ -75,4 +106,6 @@ class GestureAudioManager:
 
     def cleanup(self):
         self.running = False
+        if self.warning_source:
+            self.warning_source.stop()
         oalQuit()

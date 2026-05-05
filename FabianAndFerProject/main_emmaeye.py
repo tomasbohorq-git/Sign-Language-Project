@@ -1,43 +1,25 @@
-print("before import")
-
 import cv2
-print("before math")
-
 import math
-print("before time")
-
 import time
-print("before np")
 import numpy as np
-
 import mediapipe as mp
-print("before python")
-from mediapipe.tasks import python
-print("before vision")
-from mediapipe.tasks.python import vision
-print("before HandDetector")
-from cvzone.HandTrackingModule import HandDetector
 
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
+from cvzone.HandTrackingModule import HandDetector
 from person import PoseData
-print("before PersonTracker")
 from tracker import PersonTracker
 from associator import Associator
-print("before FaceDetectorDNN")
 from face_detector_dnn import FaceDetectorDNN
-print("before JsonlLogger")
 from logger_jsonl import JsonlLogger
-print("before HammingGestureClassifier")
 from gesture_classifier import HammingGestureClassifier
-print("before GestureAudioManager")
 from audio_manager import GestureAudioManager
-print("after")
 
 
 # ──────────────────────────────────────────────────────────────
 # CONFIG
 # ──────────────────────────────────────────────────────────────
 
-print("start")
 MODEL_PATH = "FabianAndFerProject/pose_landmarker_lite.task"
 
 NUM_POSES      = 3       # Start stable with 2; increase later if CPU allows
@@ -353,6 +335,9 @@ while True:
                 if (current_time - last_wall_alert) >= ALERT_COOLDOWN_SEC:
                     print(f"[WALL]  Obstacle at {int(wall_dist)} mm")
                     last_wall_alert = current_time
+                    audio_manager.toggle_warning(state=True)
+                else:
+                    audio_manager.toggle_warning(state=False)
             cv2.circle(frame, (cx_wall, cy_wall), 5, (0, 0, 255), -1)
             cv2.putText(frame, f"Wall: {int(wall_dist)} mm",
                         (cx_wall - 50, cy_wall - 20),
