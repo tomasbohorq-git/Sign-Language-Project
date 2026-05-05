@@ -381,14 +381,15 @@ while True:
                 hand_dist = depth_fn(hx + hw // 2, hy + hh // 2)
                 if hand_dist is not None:
                     volume    = distance_to_volume(hand_dist)
-                    audio_pos = (px, py, int(hand_dist))
+                    audio_pos = (px / 100.0, py / 100.0, int(hand_dist) / 100.0)
                     print(f"[HAND]  Person {p.id} | {side}"
                           f" | dist={int(hand_dist)} mm"
                           f" | vol={int(volume * 100)}%"
-                          f" | {sign_name}")
+                          f" | {sign_name}"
+                          f" | pos={audio_pos}")
                 else:
                     # No depth sensor - fixed neutral position / full volume
-                    audio_pos = (px, py, 0)
+                    audio_pos = (px / 100.0, py / 100.0, 0)
 
                 audio_manager.trigger_gesture(p.id, audio_pos, sign_name)
 
