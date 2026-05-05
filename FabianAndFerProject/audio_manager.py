@@ -38,6 +38,7 @@ class GestureAudioManager:
         # We open an empty source and assign the buffer
         self.warning_source = oalOpen("FabianAndFerProject/audio/beep_warning.wav")
         self.warning_source.set_looping(True) # type: ignore
+        self.warning_source.set_gain(0.5) # type: ignore
       else:
         print("Warning: beep_warning.wav not found in audio folder.")
     
@@ -94,13 +95,6 @@ class GestureAudioManager:
                         source.play()
                     else:
                         print(f"Error: {buffer_key} not found in buffers!")
-
-                    # # Update position and play
-                    # source.set_position(position)
-
-                    # source.buffer = self.audio_buffers[f"{sign_name}_{(person_id % NUMBER_OF_VARIATIONS)+1}"] # Use pre-loaded buffer
-
-                    # source.play()
             
             time.sleep(0.1) # Prevent CPU spiking
 
