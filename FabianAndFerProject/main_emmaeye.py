@@ -38,6 +38,9 @@ MAX_VOLUME_DIST         = 300.0  # 30 cm  -> 100 % volume
 MIN_VOLUME_DIST         = 2000.0 # 200 cm -> 10 % volume
 VOLUME_FADE_RANGE       = 0.9    # Dynamic range between those extremes
 
+# Audio
+CLIP_AUDIO = True
+
 # ── Gesture reference matrix (G1-G16) ────────────────────────
 GESTURE_MATRIX = np.array([
     [1,0,0,1,1,1,1,1,1,0,0,0],
@@ -183,6 +186,42 @@ def gid_to_sign_name(gid: int) -> str:
 
 
 # ──────────────────────────────────────────────────────────────
+# Audio Helpers
+# ──────────────────────────────────────────────────────────────
+
+def clip_position_to_points(pos, target_angles_deg=[0.0, -30.0, 30.0]):
+    """
+    Snaps a 3D position to the nearest angular plane in the XZ axis.
+    
+    Args:
+        pos: Tuple of (x, y, z) coordinates.
+        target_angles_deg: List of angles in degrees to snap to. 
+                           0 is straight ahead (the Z axis).
+                           Positive values are to the right, negative to the left.
+    """
+    x, y, z = pos
+    
+    # 1. Get the horizontal distance from the camera (radius in XZ plane)
+    # math.hypot calculates sqrt(x^2 + z^2) safely
+    r_xz = math.hypot(x, z)
+    
+    # 2. Calculate the current angle in degrees
+    # atan2(x, z) assumes Z is forward, X is right/left.
+    current_angle = math.degrees(math.atan2(x, z))
+    
+    # 3. Find the closest target angle from the provided list
+    closest_angle = min(target_angles_deg, key=lambda a: abs(a - current_angle))
+    
+    # 4. Calculate the new X and Z using the snapped angle
+    snapped_rad = math.radians(closest_angle)
+    
+    new_x = r_xz * math.sin(snapped_rad)
+    new_z = r_xz * math.cos(snapped_rad)
+    
+    # 5. Return the new position, keeping the original "true up down" (Y)
+    return (new_x, y, new_z)
+
+# ──────────────────────────────────────────────────────────────
 # CAMERA INITIALISATION  (ZED-first, webcam fallback)
 # ──────────────────────────────────────────────────────────────
 
@@ -228,6 +267,23 @@ if not USE_ZED:
     print("[Camera] Webcam ready (no real depth - volume will use fixed fallback).")
 else:
     cap = None  # not used when ZED is active
+
+left_edge_angle = -30
+right_edge_angle = 30
+if zed is not None:
+    # 1. Get the camera information
+    cam_info = zed.get_camera_information()
+    
+    # 2. Extract the Horizontal and Vertical FOV (returns degrees)
+    # We use the left camera because that is what you are retrieving images from
+    h_fov = cam_info.camera_configuration.calibration_parameters.left_cam.h_fov
+    
+    print(f"ZED Horizontal FOV: {h_fov:.2f} degrees")
+    # 3. Calculate the edges (since 0 is the exact center line)
+    # If your h_fov is 110 degrees, the left edge is -55 and right is +55
+    left_edge_angle  = -(h_fov / 2.0)
+    right_edge_angle = (h_fov / 2.0)
+
 print("after init...")
 
 
@@ -418,6 +474,8 @@ while True:
                     hand_y    = hand_xyz[1] if hand_xyz else 0
                     hand_z    = hand_xyz[2] if hand_xyz else 0
                     audio_pos = (hand_x/100.0, hand_y/100.0, hand_z / 100.0)
+                    if CLIP_AUDIO:
+                        audio_pos = clip_position_to_points(audio_pos, target_angles_deg=[left_edge_angle, 0, right_edge_angle])
                     print(f"[HAND]  Person {p.id} | {side}"
                           f" | dist={int(hand_dist)} mm"
                           f" | vol={int(volume * 100)}%"
@@ -426,6 +484,8 @@ while True:
                 else:
                     # No depth sensor - fixed neutral position / full volume
                     audio_pos = (px / 100.0, py / 100.0, 0)
+                    if CLIP_AUDIO:
+                        audio_pos = clip_position_to_points(audio_pos, target_angles_deg=[left_edge_angle, 0, right_edge_angle])
 
                 audio_manager.trigger_gesture(p.id, audio_pos, sign_name)
 
