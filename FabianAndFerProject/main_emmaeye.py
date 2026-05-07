@@ -32,7 +32,7 @@ COUPLING_FACTOR = 0.35       # Hand->Pose coupling threshold (relative to should
 LOG_PATH = "FabianAndFerProject/emmaeye_log.jsonl"
 
 # ── Depth / echolocation (from CamTest) ──────────────────────
-WALL_ALERT_THRESHOLD_MM = 1000   # Warn if obstacle closer than 1 m
+WALL_ALERT_THRESHOLD_MM = 600   # Warn if obstacle closer than 1 m
 ALERT_COOLDOWN_SEC      = 1.0    # Min seconds between wall-alert prints
 MAX_VOLUME_DIST         = 300.0  # 30 cm  -> 100 % volume
 MIN_VOLUME_DIST         = 2000.0 # 200 cm -> 10 % volume
