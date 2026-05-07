@@ -283,7 +283,9 @@ while True:
         print("Frame read failed. Exiting.")
         break
 
-    h, w         = frame.shape[:2]
+    h, w = frame.shape[:2]
+    cam_cx = w // 2
+    cam_cy = h // 2
     current_time = time.time()
 
     # Strictly increasing timestamp for MediaPipe
@@ -386,7 +388,9 @@ while True:
                 hand_dist = depth_fn(hx + hw // 2, hy + hh // 2)
                 if hand_dist is not None:
                     volume    = distance_to_volume(hand_dist)
-                    audio_pos = (px / 100.0, py / 100.0, int(hand_dist) / 100.0)
+                    audio_x = px - cam_cx
+                    audio_y = cam_cy - py
+                    audio_pos = (audio_x, audio_y, int(hand_dist) / 100.0)
                     print(f"[HAND]  Person {p.id} | {side}"
                           f" | dist={int(hand_dist)} mm"
                           f" | vol={int(volume * 100)}%"
