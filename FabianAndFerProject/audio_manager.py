@@ -38,11 +38,12 @@ class GestureAudioManager:
         # We open an empty source and assign the buffer
         self.warning_source = oalOpen("FabianAndFerProject/audio/beep_warning.wav")
         self.warning_source.set_looping(True) # type: ignore
-        self.warning_source.set_gain(0.5) # type: ignore
       else:
         print("Warning: beep_warning.wav not found in audio folder.")
     
-    def toggle_warning(self, state=None):
+    # state: True or False = On or Off
+    # intensity: 0.0 to 1.0, controls the volume of the warning beep.
+    def toggle_warning(self, state=None, intensity=1.0):
       """
       Toggles the warning beep on/off. 
       If state is provided (True/False), it sets it explicitly.
@@ -55,6 +56,9 @@ class GestureAudioManager:
         self.is_warning_active = not self.is_warning_active
       else:
         self.is_warning_active = state
+
+      # Set the gain based on intensity (0.0 to 1.0), scaled down by 2 to avoid being too loud.
+      self.warning_source.set_gain(intensity/2) # type: ignore
 
       if self.is_warning_active:
         if self.warning_source.get_state() != AL_PLAYING:

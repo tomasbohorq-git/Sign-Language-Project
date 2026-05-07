@@ -329,19 +329,24 @@ while True:
     if USE_ZED:
         cx_wall   = w // 2
         cy_wall   = h // 2
-        wall_dist = depth_fn(cx_wall, cy_wall)
-        if wall_dist is not None:
+        wall_dist = depth_fn(cx_wall``, cy_wall)
+        enable_warning = False
+        if wall_dist is None:
             if wall_dist < WALL_ALERT_THRESHOLD_MM:
+                intensity = 1.0 - (wall_dist/WALL_ALERT_THRESHOLD_MM)
                 if (current_time - last_wall_alert) >= ALERT_COOLDOWN_SEC:
                     print(f"[WALL]  Obstacle at {int(wall_dist)} mm")
                     last_wall_alert = current_time
-                    audio_manager.toggle_warning(state=True)
-                else:
-                    audio_manager.toggle_warning(state=False)
+                    enable_warning = True
             cv2.circle(frame, (cx_wall, cy_wall), 5, (0, 0, 255), -1)
             cv2.putText(frame, f"Wall: {int(wall_dist)} mm",
                         (cx_wall - 50, cy_wall - 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        if enable_warning:
+            audio_manager.toggle_warning(state=True, intensity=intensity)
+        else:
+            audio_manager.toggle_warning(state=False)
+
 
     # ── SYSTEM 2 & 3: Per-person UI + depth-aware audio ───────
     for p in people:
