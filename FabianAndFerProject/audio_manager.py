@@ -4,7 +4,7 @@ import queue
 import time
 from openal import oalOpen, oalQuit, AL_PLAYING
 
-NUMBER_OF_VARIATIONS = 1  # Number of variations per sign
+NUMBER_OF_VARIATIONS = 3  # Number of variations per sign
 
 class GestureAudioManager:
 
