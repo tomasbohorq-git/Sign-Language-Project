@@ -3,6 +3,7 @@ import math
 import time
 import numpy as np
 import mediapipe as mp
+import logging
 
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
@@ -19,6 +20,7 @@ from audio_manager import GestureAudioManager
 # ──────────────────────────────────────────────────────────────
 # CONFIG
 # ──────────────────────────────────────────────────────────────
+logging.basicConfig(level=logging.INFO)
 
 MODEL_PATH = "FabianAndFerProject/pose_landmarker_lite.task"
 
@@ -378,6 +380,7 @@ while True:
     # ── Pose detection ────────────────────────────────────────
     mp_image    = mp.Image(image_format=mp.ImageFormat.SRGB,
                            data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    # print("after mp.img")
     pose_result = pose_landmarker.detect_for_video(mp_image, t_ms)
 
     detected_poses = []
@@ -387,6 +390,7 @@ while True:
 
     people = tracker.update(detected_poses)
     # Deduplicate by depth: if two people are within 80px AND within 150mm depth, drop the newer ID
+    # print("updated tracker")
     if USE_ZED:
         to_remove = set()
         plist = [p for p in people if p.pose]
@@ -400,6 +404,7 @@ while True:
                     if da and db and abs(da - db) < 150:
                         to_remove.add(max(a.id, b.id))  # <- all inside the if px_dist block
         people = [p for p in people if p.id not in to_remove]  # <- outside the loops
+    #print("creted people")
 
     # ── Hand & face detection ─────────────────────────────────
     hands, frame = hand_detector.findHands(frame, draw=True, flipType=FLIP_TYPE)
@@ -414,7 +419,7 @@ while True:
         cy_wall   = h // 2
         wall_dist = depth_fn(cx_wall, cy_wall)
         enable_warning = False
-        if wall_dist is None:
+        if wall_dist is not  None:
             if wall_dist < WALL_ALERT_THRESHOLD_MM:
                 intensity = 1.0 - (wall_dist/WALL_ALERT_THRESHOLD_MM)
                 if (current_time - last_wall_alert) >= ALERT_COOLDOWN_SEC:
@@ -427,6 +432,8 @@ while True:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
         if enable_warning:
             audio_manager.toggle_warning(state=True, intensity=intensity)
+            print("warning toggled.")
+
         else:
             audio_manager.toggle_warning(state=False)
 
@@ -468,7 +475,7 @@ while True:
                 # Derive audio position; use real depth for Z when available
                 hand_dist = depth_fn(hx + hw // 2, hy + hh // 2)
                 hand_xyz  = xyz_fn(hx + hw // 2, hy + hh // 2)
-                if hand_dist is not None:
+                if hand_dist is not None and hand_xyz is not None:
                     volume    = distance_to_volume(hand_dist)
                     hand_x    = hand_xyz[0] if hand_xyz else 0
                     hand_y    = hand_xyz[1] if hand_xyz else 0
@@ -487,7 +494,7 @@ while True:
                     if CLIP_AUDIO:
                         audio_pos = clip_position_to_points(audio_pos, target_angles_deg=[left_edge_angle, 0, right_edge_angle])
 
-                audio_manager.trigger_gesture(p.id, audio_pos, sign_name)
+                audio_manager.trigger_gesture(p.id, audio_pos, sign_name, volume)
 
     # ── Logging ───────────────────────────────────────────────
     try:
@@ -497,6 +504,7 @@ while True:
 
     cv2.imshow("EMMAeye", frame)
     if cv2.waitKey(1) & 0xFF == 27:
+        print("break on waitKey")
         break
 
 
