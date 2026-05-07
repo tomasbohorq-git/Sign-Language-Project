@@ -63,23 +63,40 @@ GESTURE_MATRIX = np.array([
 # DEPTH HELPERS  (ported from CamTest.py)
 # ──────────────────────────────────────────────────────────────
 
-def get_valid_depth_zed(depth_mat, x: int, y: int):
+def get_physical_xyz(xyz_mat, x:int, y:int):
     """
-    Query a ZED depth map at pixel (x, y).
-    Returns distance in millimetres, or None on any invalid reading.
-    Guards against ZED error codes, NaN, Inf, and negatives.
+    Query a ZED XYZ point cloud map at pixel (x, y).
+    Returns absolute Euclidean distance in millimetres, or None on invalid reading.
     """
     import pyzed.sl as sl
-    err, value = depth_mat.get_value(x, y)
-    if (
-        err == sl.ERROR_CODE.SUCCESS
-        and not math.isnan(value)
-        and not math.isinf(value)
-        and value > 0
-    ):
-        return value
+    err, point_cloud_value = xyz_mat.get_value(x, y)
+    
+    if err == sl.ERROR_CODE.SUCCESS:
+        x_val, y_val, z_val, _ = point_cloud_value
+        
+        # Guard against invalid point cloud data
+        if (not math.isnan(x_val) and not math.isinf(x_val) and
+            not math.isnan(y_val) and not math.isinf(y_val) and
+            not math.isnan(z_val) and not math.isinf(z_val)):
+            
+            return (x_val, y_val, z_val)
+                
     return None
 
+def get_euclidean_depth_zed(xyz_mat, x: int, y: int):
+    """
+    Query a ZED XYZ point cloud map at pixel (x, y).
+    Returns absolute Euclidean distance in millimetres, or None on invalid reading.
+    """
+    physical_xyz = get_physical_xyz(xyz_mat, x, y)
+    if physical_xyz:            
+        # Calculate absolute 3D Euclidean distance
+        distance = math.sqrt(physical_xyz[0]**2 + physical_xyz[1]**2 + physical_xyz[2]**2)
+
+        if distance > 0:
+            return distance
+
+    return None
 
 def distance_to_volume(dist_mm: float) -> float:
     """
@@ -198,7 +215,7 @@ def _try_init_zed():
 
 
 print("Initializing camera...")
-zed, image_zed, depth_zed = _try_init_zed()
+zed, image_zed, xyz_zed = _try_init_zed()
 USE_ZED = zed is not None
 
 if not USE_ZED:
@@ -250,24 +267,32 @@ def grab_frame():
     """
     Returns (frame_bgr, depth_fn) where:
       depth_fn(x, y) -> float | None
-        Returns the distance in mm at pixel (x, y), or None if unavailable.
-        Real metric depth when using ZED; always None for webcam.
+        Returns the true Euclidean distance in mm at pixel (x, y), or None if unavailable.
+        Uses 3D point cloud when using ZED; always None for webcam.
     """
     if USE_ZED:
         import pyzed.sl as sl
         if zed.grab() != sl.ERROR_CODE.SUCCESS:
             return None, None
+            
         zed.retrieve_image(image_zed, sl.VIEW.LEFT)
-        zed.retrieve_measure(depth_zed, sl.MEASURE.DEPTH)
-        frame    = cv2.cvtColor(image_zed.get_data(), cv2.COLOR_BGRA2BGR)
-        depth_fn = lambda x, y: get_valid_depth_zed(depth_zed, x, y)
+        # Retrieve XYZ point cloud instead of just DEPTH
+        zed.retrieve_measure(xyz_zed, sl.MEASURE.XYZ) 
+        
+        frame = cv2.cvtColor(image_zed.get_data(), cv2.COLOR_BGRA2BGR)
+        
+        # Use our new Euclidean calculator
+        depth_fn = lambda x, y: get_euclidean_depth_zed(xyz_zed, x, y)
+        xyz_fn  = lambda x, y: get_physical_xyz(xyz_zed, x, y)
     else:
         ok, frame = cap.read()
         if not ok or frame is None or frame.size == 0:
-            return None, None
+            return None, None, None
+            
         depth_fn = lambda x, y: None  # no depth sensor available
+        xyz_fn   = lambda x, y: None  # no depth sensor available
 
-    return frame, depth_fn
+    return frame, depth_fn, xyz_fn
 
 
 # ──────────────────────────────────────────────────────────────
@@ -278,7 +303,7 @@ if (USE_ZED):
     print("using zed")
 
 while True:
-    frame, depth_fn = grab_frame()
+    frame, depth_fn, xyz_fn = grab_frame()
     if frame is None:
         print("Frame read failed. Exiting.")
         break
@@ -331,7 +356,7 @@ while True:
     if USE_ZED:
         cx_wall   = w // 2
         cy_wall   = h // 2
-        wall_dist = depth_fn(cx_wall``, cy_wall)
+        wall_dist = depth_fn(cx_wall, cy_wall)
         enable_warning = False
         if wall_dist is None:
             if wall_dist < WALL_ALERT_THRESHOLD_MM:
@@ -386,11 +411,13 @@ while True:
 
                 # Derive audio position; use real depth for Z when available
                 hand_dist = depth_fn(hx + hw // 2, hy + hh // 2)
+                hand_xyz  = xyz_fn(hx + hw // 2, hy + hh // 2)
                 if hand_dist is not None:
                     volume    = distance_to_volume(hand_dist)
-                    audio_x = px - cam_cx
-                    audio_y = cam_cy - py
-                    audio_pos = (audio_x, audio_y, int(hand_dist) / 100.0)
+                    hand_x    = hand_xyz[0] if hand_xyz else 0
+                    hand_y    = hand_xyz[1] if hand_xyz else 0
+                    hand_z    = hand_xyz[2] if hand_xyz else 0
+                    audio_pos = (hand_x/100.0, hand_y/100.0, hand_z / 100.0)
                     print(f"[HAND]  Person {p.id} | {side}"
                           f" | dist={int(hand_dist)} mm"
                           f" | vol={int(volume * 100)}%"
