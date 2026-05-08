@@ -66,7 +66,7 @@ class GestureAudioManager:
       else:
         self.warning_source.stop()
 
-    def trigger_gesture(self, person_id, position, sign_name):
+    def trigger_gesture(self, person_id, position, sign_name, volume):
         """Adds a gesture to the queue for a specific person."""
         if sign_name == "UNKNOWN":
             return  # Don't trigger sound for unknown gestures
@@ -75,7 +75,7 @@ class GestureAudioManager:
             self.sources[person_id] = oalOpen(f"FabianAndFerProject/audio/{sign_name}_{(person_id % NUMBER_OF_VARIATIONS)+1}.wav") 
         
         # Queue the gesture (store position and sign)
-        self.queues[person_id].put((position, sign_name))
+        self.queues[person_id].put((position, sign_name, volume))
 
     def _process_queues(self):
         """Background thread that manages playing queued sounds."""
@@ -85,7 +85,7 @@ class GestureAudioManager:
                 
                 # If source is free and there is something in the queue
                 if source.get_state() != AL_PLAYING and not q.empty():
-                    position, sign_name = q.get()
+                    position, sign_name, volume = q.get()
 
                     if sign_name == "UNKNOWN":
                         continue  # Don't trigger sound for unknown gestures
@@ -96,6 +96,7 @@ class GestureAudioManager:
                     if buffer_key in self.audio_buffers:
                         source.set_position(position)
                         source._set_buffer(self.audio_buffers[buffer_key])
+                        source.set_gain(volume)
                         source.play()
                     else:
                         print(f"Error: {buffer_key} not found in buffers!")
