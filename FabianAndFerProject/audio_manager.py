@@ -41,12 +41,11 @@ class GestureAudioManager:
       else:
         print("Warning: beep_warning.wav not found in audio folder.")
     
-    # state: True or False = On or Off
-    # intensity: 0.0 to 1.0, controls the volume of the warning beep.
     def toggle_warning(self, state=None, intensity=1.0):
       """
       Toggles the warning beep on/off. 
       If state is provided (True/False), it sets it explicitly.
+      intensity controls the volume of the warning (0.0 to 1.0).
       """
       if self.warning_source is None:
         return
