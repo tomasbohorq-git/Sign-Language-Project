@@ -12,7 +12,6 @@ from person import PoseData
 from tracker import PersonTracker
 from associator import Associator
 from face_detector_dnn import FaceDetectorDNN
-from logger_jsonl import JsonlLogger
 from gesture_classifier import HammingGestureClassifier
 from audio_manager import GestureAudioManager
 
@@ -31,8 +30,6 @@ FLIP_TYPE      = True    # False = error with the hand labeling, left=right and 
 CAP_W, CAP_H   = 1280, 720  # Camera capture resolution (best effort)
 COUPLING_FACTOR = 0.35       # Hand->Pose coupling threshold (relative to shoulder dist)
 
-LOG_PATH = "FabianAndFerProject/emmaeye_log.jsonl"
-
 # ── Depth / echolocation (from CamTest) ──────────────────────
 WALL_ALERT_THRESHOLD_MM = 600   # Warn if obstacle closer than 1 m
 ALERT_COOLDOWN_SEC      = 1.0    # Min seconds between wall-alert prints
@@ -41,6 +38,9 @@ MIN_VOLUME_DIST         = 2000.0 # 200 cm -> 10 % volume
 VOLUME_FADE_RANGE       = 0.9    # Dynamic range between those extremes
 
 # Audio
+
+# Enables clipping audio to the center or the edges of the frame of the camara.
+# This supports an idea that seperating sounds more clearly might make the learning curve easier for users.
 CLIP_AUDIO = True
 
 # ── Gesture reference matrix (G1-G16) ────────────────────────
@@ -286,8 +286,6 @@ if zed is not None:
     left_edge_angle  = -(h_fov / 2.0)
     right_edge_angle = (h_fov / 2.0)
 
-print("after init...")
-
 
 # ──────────────────────────────────────────────────────────────
 # ML MODEL INITIALISATION
@@ -308,7 +306,6 @@ hand_detector  = HandDetector(detectionCon=0.8, maxHands=MAX_HANDS)
 face_detector  = FaceDetectorDNN(conf_threshold=0.5)
 tracker        = PersonTracker(max_people=20, max_missed=15, match_thresh_px=120.0)
 associator     = Associator(gesture_classifier=HammingGestureClassifier(GESTURE_MATRIX, max_hamming=1))
-logger         = JsonlLogger(LOG_PATH)
 audio_manager  = GestureAudioManager()
 
 print("EMMAeye running. Press ESC to exit.")
@@ -356,7 +353,6 @@ def grab_frame():
 # ──────────────────────────────────────────────────────────────
 # MAIN LOOP
 # ──────────────────────────────────────────────────────────────
-print("before loop...")
 if (USE_ZED):
     print("using zed")
 
@@ -380,7 +376,6 @@ while True:
     # ── Pose detection ────────────────────────────────────────
     mp_image    = mp.Image(image_format=mp.ImageFormat.SRGB,
                            data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-    # print("after mp.img")
     pose_result = pose_landmarker.detect_for_video(mp_image, t_ms)
 
     detected_poses = []
@@ -390,7 +385,6 @@ while True:
 
     people = tracker.update(detected_poses)
     # Deduplicate by depth: if two people are within 80px AND within 150mm depth, drop the newer ID
-    # print("updated tracker")
     if USE_ZED:
         to_remove = set()
         plist = [p for p in people if p.pose]
@@ -404,7 +398,6 @@ while True:
                     if da and db and abs(da - db) < 150:
                         to_remove.add(max(a.id, b.id))  # <- all inside the if px_dist block
         people = [p for p in people if p.id not in to_remove]  # <- outside the loops
-    #print("creted people")
 
     # ── Hand & face detection ─────────────────────────────────
     hands, frame = hand_detector.findHands(frame, draw=True, flipType=FLIP_TYPE)
@@ -496,12 +489,6 @@ while True:
 
                 audio_manager.trigger_gesture(p.id, audio_pos, sign_name, volume)
 
-    # ── Logging ───────────────────────────────────────────────
-    try:
-        logger.log_people(people)
-    except Exception as e:
-        print(f"Logger Error: {e}")
-
     cv2.imshow("EMMAeye", frame)
     if cv2.waitKey(1) & 0xFF == 27:
         print("break on waitKey")
@@ -518,5 +505,4 @@ else:
     cap.release()
 
 cv2.destroyAllWindows()
-logger.close()
 audio_manager.cleanup()
